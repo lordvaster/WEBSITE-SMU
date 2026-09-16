@@ -13,18 +13,33 @@ const features = [
     icon: CalendarDays,
     title: "Jadwal Terpusat",
     desc: "Lihat jadwal pelajaran seluruh kelas kapan saja, dari perangkat apa saja, tanpa perlu login.",
+    href: "/jadwal",
+    linkLabel: "Lihat Jadwal",
+    tone: "primary" as const,
   },
   {
     icon: LineChart,
     title: "Nilai Real-time",
     desc: "Siswa dan orang tua memantau perkembangan nilai per semester lengkap dengan grafik tren, bukan cuma angka.",
+    href: "/login",
+    linkLabel: "Masuk untuk Lihat Nilai",
+    tone: "secondary" as const,
   },
   {
     icon: Newspaper,
     title: "Informasi Terkini",
     desc: "Berita kegiatan dan galeri prestasi sekolah selalu diperbarui, bisa dibagikan langsung ke media sosial.",
+    href: "/berita",
+    linkLabel: "Jelajahi Berita",
+    tone: "accent" as const,
   },
 ];
+
+const featureTone = {
+  primary: "bg-primary-50 text-primary-600 group-hover:bg-primary-600",
+  secondary: "bg-secondary-50 text-secondary-600 group-hover:bg-secondary-600",
+  accent: "bg-accent-50 text-accent-600 group-hover:bg-accent-600",
+} as const;
 
 const stats = [
   { value: "1.200+", label: "Siswa Aktif" },
@@ -118,16 +133,23 @@ export default async function Home() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
             {features.map((f) => (
-              <div
+              <Link
                 key={f.title}
-                className="group rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg"
+                href={f.href}
+                className="group flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary-50 text-primary-600 transition group-hover:bg-primary-600 group-hover:text-white">
-                  <f.icon className="h-5 w-5" />
+                <div
+                  className={`flex h-14 w-14 items-center justify-center rounded-xl transition group-hover:text-white ${featureTone[f.tone]}`}
+                >
+                  <f.icon className="h-7 w-7" />
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">{f.desc}</p>
-              </div>
+                <h3 className="mt-5 text-lg font-bold text-slate-900">{f.title}</h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{f.desc}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary-600">
+                  {f.linkLabel}
+                  <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" />
+                </span>
+              </Link>
             ))}
           </div>
         </div>
