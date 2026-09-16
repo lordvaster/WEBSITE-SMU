@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PublicNavbar } from "@/components/layouts/PublicNavbar";
+import { PublicPageShell } from "@/components/layouts/PublicPageShell";
 import { JadwalTable } from "@/components/JadwalTable";
 import { db } from "@/lib/db";
 
@@ -14,8 +14,7 @@ export default async function JadwalPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <PublicNavbar />
+    <PublicPageShell>
       <div className="mx-auto max-w-6xl px-4 py-10">
         <h1 className="text-2xl font-semibold text-slate-900">Jadwal Pelajaran</h1>
         <p className="mt-1 text-sm text-slate-500">
@@ -26,6 +25,6 @@ export default async function JadwalPage() {
           <JadwalTable kelasOptions={kelasList} guruOptions={guruList} />
         </div>
       </div>
-    </div>
+    </PublicPageShell>
   );
 }

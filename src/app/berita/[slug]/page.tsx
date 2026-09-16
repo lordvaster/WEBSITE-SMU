@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Clock } from "lucide-react";
-import { PublicNavbar } from "@/components/layouts/PublicNavbar";
+import { PublicPageShell } from "@/components/layouts/PublicPageShell";
 import { BeritaCard } from "@/components/public/BeritaCard";
 import { ShareButtons } from "@/components/public/ShareButtons";
 import { db } from "@/lib/db";
@@ -56,10 +56,9 @@ export default async function BeritaDetailPage({
   const readingMinutes = estimateReadingMinutes(berita.konten);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <PublicNavbar />
+    <PublicPageShell>
       <article className="mx-auto max-w-3xl px-4 py-10">
-        <Link href="/berita" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600">
+        <Link href="/berita" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600">
           <ArrowLeft className="h-4 w-4" />
           Kembali ke Berita
         </Link>
@@ -105,6 +104,6 @@ export default async function BeritaDetailPage({
           </div>
         )}
       </article>
-    </div>
+    </PublicPageShell>
   );
 }

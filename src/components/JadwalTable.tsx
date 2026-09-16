@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, CalendarX } from "lucide-react";
+import { colorForSubject } from "@/lib/subject-colors";
 
 type JadwalItem = {
   id: string;
@@ -137,7 +138,7 @@ export function JadwalTable({
               setHari("");
               setSearch("");
             }}
-            className="font-medium text-blue-500 hover:underline"
+            className="font-medium text-primary-600 hover:underline"
           >
             Reset filter
           </button>
@@ -166,18 +167,50 @@ export function JadwalTable({
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-400">
-                  Tidak ada jadwal yang cocok dengan filter.
+                <td colSpan={6} className="px-4 py-14">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                      <CalendarX className="h-6 w-6" />
+                    </div>
+                    <p className="mt-3 text-sm font-medium text-slate-600">Belum ada jadwal</p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      {hasFilters
+                        ? "Tidak ada jadwal yang cocok dengan filter ini."
+                        : "Jadwal akan muncul di sini setelah ditambahkan oleh admin."}
+                    </p>
+                    {hasFilters && (
+                      <button
+                        onClick={() => {
+                          setKelasId("");
+                          setGuruId("");
+                          setHari("");
+                          setSearch("");
+                        }}
+                        className="mt-3 text-sm font-medium text-primary-600 hover:underline"
+                      >
+                        Lihat semua jadwal
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ) : (
-              items.map((j) => (
-                <tr key={j.id} className="hover:bg-slate-50">
+              items.map((j, i) => (
+                <tr
+                  key={j.id}
+                  className={`transition hover:bg-primary-50/60 ${i % 2 === 1 ? "bg-slate-50/60" : ""}`}
+                >
                   <td className="px-4 py-3">{j.hari}</td>
                   <td className="px-4 py-3">
                     {j.jam_mulai}–{j.jam_selesai}
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-800">{j.mapel}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${colorForSubject(j.mapel)}`}
+                    >
+                      {j.mapel}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">{j.kelasNama}</td>
                   <td className="px-4 py-3">{j.guruNama}</td>
                   <td className="px-4 py-3">{j.ruangan}</td>

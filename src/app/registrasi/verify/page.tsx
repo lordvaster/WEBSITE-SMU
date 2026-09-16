@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { PublicNavbar } from "@/components/layouts/PublicNavbar";
+import { PublicPageShell } from "@/components/layouts/PublicPageShell";
 import { db } from "@/lib/db";
 
 async function verifyToken(token: string | undefined) {
@@ -30,11 +30,10 @@ export default async function VerifyRegistrasiPage({
   const result = await verifyToken(token);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <PublicNavbar />
+    <PublicPageShell>
       <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
         {result.success ? (
-          <CheckCircle2 className="mb-4 h-14 w-14 text-green-500" />
+          <CheckCircle2 className="mb-4 h-14 w-14 text-secondary-500" />
         ) : (
           <XCircle className="mb-4 h-14 w-14 text-red-500" />
         )}
@@ -42,10 +41,13 @@ export default async function VerifyRegistrasiPage({
           {result.success ? "Verifikasi Berhasil" : "Verifikasi Gagal"}
         </h1>
         <p className="mt-2 text-sm text-slate-500">{result.message}</p>
-        <Link href="/" className="mt-6 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">
+        <Link
+          href="/"
+          className="mt-6 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+        >
           Kembali ke Beranda
         </Link>
       </div>
-    </div>
+    </PublicPageShell>
   );
 }

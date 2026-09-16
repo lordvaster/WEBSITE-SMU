@@ -92,10 +92,10 @@ export function LoginForm() {
           autoComplete="email"
           {...register("email")}
           className={cn(
-            "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-blue-500/30",
+            "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-primary-500/30",
             errors.email
               ? "border-red-500 focus:border-red-500"
-              : "border-slate-300 focus:border-blue-500"
+              : "border-slate-300 focus:border-primary-500"
           )}
           placeholder="nama@smu.co.id"
         />
@@ -114,10 +114,10 @@ export function LoginForm() {
           autoComplete="current-password"
           {...register("password")}
           className={cn(
-            "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-blue-500/30",
+            "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-primary-500/30",
             errors.password
               ? "border-red-500 focus:border-red-500"
-              : "border-slate-300 focus:border-blue-500"
+              : "border-slate-300 focus:border-primary-500"
           )}
           placeholder="••••••••"
         />
@@ -131,7 +131,7 @@ export function LoginForm() {
           <input type="checkbox" {...register("remember")} className="h-4 w-4 rounded border-slate-300" />
           Ingat saya
         </label>
-        <a href="/lupa-password" className="font-medium text-blue-500 hover:underline">
+        <a href="/lupa-password" className="font-medium text-primary-600 hover:underline">
           Lupa password?
         </a>
       </div>
@@ -139,7 +139,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {isSubmitting ? "Memproses..." : "Masuk"}
@@ -147,7 +147,7 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-slate-500">
         Calon siswa baru?{" "}
-        <a href="/registrasi" className="font-medium text-blue-500 hover:underline">
+        <a href="/registrasi" className="font-medium text-primary-600 hover:underline">
           Daftar di sini
         </a>
       </p>

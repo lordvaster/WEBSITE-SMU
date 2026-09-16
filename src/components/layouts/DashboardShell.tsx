@@ -41,7 +41,7 @@ export function DashboardShell({
             className={cn(
               "block rounded-lg px-3 py-2 text-sm font-medium transition",
               active
-                ? "bg-blue-500 text-white"
+                ? "bg-primary-600 text-white"
                 : "text-slate-600 hover:bg-slate-100"
             )}
             onClick={() => setMobileOpen(false)}
@@ -65,7 +65,7 @@ export function DashboardShell({
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
           <span className="text-lg font-semibold text-slate-900">SMU</span>
-          <span className="hidden rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600 sm:inline">
+          <span className="hidden rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-600 sm:inline">
             {roleLabel[role] ?? role}
           </span>
         </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, Video, ImageOff } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export type GaleriItem = {
@@ -32,7 +32,7 @@ export function PublicGaleriView({ items }: { items: GaleriItem[] }) {
               setActiveIndex(null);
             }}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              filter === f ? "bg-blue-500 text-white" : "border border-slate-300 text-slate-600 hover:bg-white"
+              filter === f ? "bg-primary-600 text-white" : "border border-slate-300 text-slate-600 hover:bg-white"
             }`}
           >
             {f === "all" ? "Semua" : f === "foto" ? "Foto" : "Video"}
@@ -41,7 +41,13 @@ export function PublicGaleriView({ items }: { items: GaleriItem[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="py-10 text-center text-sm text-slate-400">Belum ada item galeri.</p>
+        <div className="flex flex-col items-center py-16 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <ImageOff className="h-6 w-6" />
+          </div>
+          <p className="mt-3 text-sm font-medium text-slate-600">Belum ada item galeri</p>
+          <p className="mt-1 text-sm text-slate-400">Coba pilih kategori lain.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((item, i) => (
@@ -103,7 +109,7 @@ export function PublicGaleriView({ items }: { items: GaleriItem[] }) {
                 href={active.link_video}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-block text-sm font-medium text-blue-500 hover:underline"
+                className="mt-3 inline-block text-sm font-medium text-primary-600 hover:underline"
               >
                 Tonton video lengkap →
               </a>

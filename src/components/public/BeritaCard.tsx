@@ -34,7 +34,7 @@ export function BeritaCard({ berita }: { berita: BeritaCardData }) {
               })
             : ""}
         </p>
-        <h3 className="mt-1 line-clamp-2 font-semibold text-slate-900 group-hover:text-blue-600">
+        <h3 className="mt-1 line-clamp-2 font-semibold text-slate-900 group-hover:text-primary-600">
           {berita.judul}
         </h3>
         {berita.excerpt && (
