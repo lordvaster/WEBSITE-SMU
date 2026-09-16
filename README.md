@@ -1,36 +1,141 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SMU Website
 
-## Getting Started
+Sistem informasi akademik sekolah — Next.js 16 (App Router, React 19) + PostgreSQL + Prisma + NextAuth.js.
 
-First, run the development server:
+## Security review & hardening (2026-09-16)
+
+A manual security review (auth, uploads, admin authorization, injection surfaces) turned up 8 findings, all fixed:
+
+- **Path traversal → arbitrary file deletion** in Galeri: `gambar` is now restricted to `/uploads/(berita|galeri)/...` by regex, plus `resolveUploadPath()` in `src/lib/upload.ts` refuses to resolve outside `public/uploads` even if that were bypassed.
+- **Stale authorization**: `requireAdmin()` (`src/lib/api-helpers.ts`) now re-checks `isActive`/`role` against the DB on every request instead of trusting the JWT claim for its full lifetime — a deactivated admin is locked out immediately, not after up to 15 minutes.
+- **CSV/formula injection** in the nilai export: cells starting with `=+-@` are now prefixed with `'` before quoting.
+- **No brute-force protection on login**: `src/lib/rate-limit.ts` caps failed attempts at 5/email and 20/IP per 15-minute window.
+- **Email enumeration via timing**: `authorize()` always runs a bcrypt compare (against a dummy hash for unknown users) so response time no longer reveals whether an email is registered.
+- **Upload MIME spoofing**: `saveUploadedImage()` now verifies the file's magic bytes match its claimed type instead of trusting the client-supplied `Content-Type`.
+- **Missing security headers**: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, and HSTS are set in `next.config.mjs`.
+- **Dependency CVEs**: upgraded Next.js 14→16 and React 18→19 (Next 14's critical/high CVEs are only fixed in v16); `xlsx` had no npm-side fix for its prototype-pollution/ReDoS advisory, so it's now installed from SheetJS's own CDN tarball (`https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz`), their official distribution channel for patched builds. `npm audit` now reports 0 vulnerabilities.
+
+**Next.js 16 migration notes**: dynamic route `params` are now `Promise`-wrapped in Route Handlers (`await params` added to every `/api/.../[id]/route.ts`); `middleware.ts` was renamed to `src/proxy.ts` per the new file convention; `next lint` was removed from the CLI, so `npm run lint` now runs `eslint .` directly against a flat `eslint.config.mjs` (migrated off `.eslintrc.json`, which required bumping to ESLint 9). Two React Compiler–derived lint rules (`react-hooks/set-state-in-effect`, `react-hooks/incompatible-library`) are downgraded to warnings — they assume code adopts the React Compiler or a data-fetching library like SWR/React Query, which this project's straightforward `useEffect` + `fetch`-on-mount pattern intentionally doesn't.
+
+## Phase 1 status
+
+- Database connected & migrated (PostgreSQL, Prisma)
+- NextAuth.js credentials login with 4 roles: `admin`, `guru`, `siswa`, `orang_tua`
+- Login page with client + server validation (react-hook-form + zod)
+- Role-based protected routes via middleware (`/admin`, `/dashboard/*`)
+- Public `/jadwal` page with filtering (kelas, guru, hari, search) + pagination, backed by an API route with an optional Redis cache
+- Basic homepage
+- Seed script with sample data for all roles
+
+## Phase 2 status
+
+Full admin panel at `/admin` (admin role only), built on a reusable `DataTable` (TanStack Table: sort, global search, pagination), Radix `Dialog`-based forms/confirm dialogs, and Sonner toasts.
+
+- **Siswa** (`/admin/siswa`): CRUD, NISN/email uniqueness checks, Excel bulk import (`xlsx`, client-parsed) with per-row error reporting
+- **Guru** (`/admin/guru`): CRUD, NIP/email uniqueness, Excel bulk import; deleting a guru still referenced by jadwal/nilai returns a friendly 409 instead of a DB error
+- **Jadwal** (`/admin/jadwal`): week-view (Senin–Sabtu columns, agenda-style per day, color-coded by mata pelajaran) instead of a full calendar-grid library — click "+" to create, click an entry to edit; server-side overlap validation (guru/kelas/ruangan double-booking) on create, update, and bulk import; mutations invalidate the public `/jadwal` Redis cache immediately
+- **Nilai** (`/admin/nilai`): filter by kelas/semester/mapel, auto-calculated `nilai_akhir` (20% harian + 30% UTS + 50% UAS), duplicate (siswa+mapel+semester) prevention, Excel bulk import (upsert), CSV export
+- **Berita** (`/admin/berita`): TipTap rich text editor, auto-slug from title, image upload to `public/uploads/berita`, HTML sanitized server-side with DOMPurify, publish/draft toggle, public API at `/api/public/berita` (published only)
+- **Galeri** (`/admin/galeri`): grid view, drag-and-drop image upload to `public/uploads/galeri`, foto/video with optional video link, public API at `/api/public/galeri`
+
+All `/api/admin/*` routes are protected server-side via `requireAdmin()` (403 for non-admin/unauthenticated), independent of the middleware's page-level checks.
+
+**Known trade-offs** (reasonable for this project's scale, worth revisiting if data volume grows):
+- `DataTable` fetches the full resource list and paginates/sorts/filters client-side rather than doing server-side pagination — simplest option for a single school's data (tens to low-thousands of rows).
+- Jadwal is an agenda-per-day view, not a literal time-grid calendar component — avoids a heavy calendar library while still supporting click-to-create/edit and overlap validation.
+- Nilai's "guru pencatat" (recording teacher) is inferred by matching mata pelajaran to a guru who teaches it, since the CRUD form doesn't expose that field explicitly.
+
+## Requirements
+
+- Node.js 20+
+- PostgreSQL (running locally or reachable via `DATABASE_URL`)
+- Redis (optional — the app runs fine without it; caching is skipped automatically if `REDIS_URL` is unset or unreachable)
+
+## Setup
 
 ```bash
+npm install
+cp .env.example .env   # then edit DATABASE_URL / NEXTAUTH_SECRET
+npm run prisma:migrate
+npm run prisma:db:seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables (`.env`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+DATABASE_URL="postgresql://user:password@localhost:5432/smu_website"
+NEXTAUTH_SECRET="use `openssl rand -base64 32` in production"
+NEXTAUTH_URL="http://localhost:3000"
+REDIS_URL="redis://localhost:6379"   # optional
+```
 
-## Learn More
+## Test credentials (after seeding)
 
-To learn more about Next.js, take a look at the following resources:
+Password for all seeded accounts: `Test123!`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Role       | Email                  |
+|------------|-------------------------|
+| Admin      | admin@smu.co.id         |
+| Guru       | guru1@smu.co.id         |
+| Siswa      | siswa1@smu.co.id        |
+| Orang Tua  | orangtua1@smu.co.id     |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Useful scripts
 
-## Deploy on Vercel
+```bash
+npm run dev              # start dev server
+npm run build            # production build
+npm run lint             # ESLint
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+npm run prisma:migrate   # create/apply a migration
+npm run prisma:generate  # regenerate Prisma client
+npm run prisma:studio    # open Prisma Studio
+npm run prisma:db:seed   # re-run prisma/seed.ts (idempotent)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project structure
+
+```
+src/
+  app/
+    (auth)/login/          # public login page
+    admin/                 # admin dashboard (role: admin)
+    dashboard/guru/        # guru dashboard (role: guru)
+    dashboard/siswa/       # siswa dashboard (role: siswa)
+    dashboard/orang-tua/   # orang tua dashboard (role: orang_tua)
+    jadwal/                # public schedule page
+    api/
+      auth/[...nextauth]/  # NextAuth handler
+      auth/register/       # admin-only user creation
+      jadwal/              # filtered/paginated schedule data (cached)
+  components/
+    forms/                 # LoginForm
+    layouts/                # AuthLayout, PublicNavbar, DashboardShell
+  lib/
+    auth.ts                # NextAuth config + role -> dashboard path helper
+    db.ts                  # Prisma client singleton
+    password.ts            # bcrypt hash/compare (12 rounds)
+    cache.ts                # Redis get/set, no-ops if REDIS_URL absent
+  middleware.ts             # route protection + role enforcement
+prisma/
+  schema.prisma
+  seed.ts
+```
+
+## Notes on scope
+
+- Dashboard pages (admin/guru/siswa/orang_tua) show real data from the database but link out to CRUD screens (Kelola Siswa, Input Nilai, etc.) that are **Phase 2/3** work and not yet built.
+- Login is handled entirely by NextAuth's built-in `/api/auth/callback/credentials` endpoint; there is no separate custom `/api/auth/login` route.
+- Redis caching for `/jadwal` degrades gracefully to direct DB queries if Redis is not running.
+
+## Common issues
+
+| Issue | Solution |
+|---|---|
+| `DATABASE_URL` connection error | Check PostgreSQL is running and the URL in `.env` is correct |
+| Prisma migration fails | Delete `prisma/migrations` and run `npx prisma migrate dev --name init` again |
+| NextAuth session missing | Ensure `NEXTAUTH_SECRET` and `NEXTAUTH_URL` are set in `.env` |
+| Redis warnings in logs | Safe to ignore in dev — caching silently falls back to direct DB reads |

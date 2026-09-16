@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  password String
+  role     String // "admin" | "guru" | "siswa" | "orang_tua"
+  isActive Boolean @default(true)
+
+  siswa Siswa?
+  guru  Guru?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+model Siswa {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  nama          String
+  nisn          String   @unique
+  nik           String
+  tempat_lahir  String
+  tanggal_lahir DateTime
+  jenis_kelamin String // "L" | "P"
+  alamat        String
+  no_telepon    String
+
+  orang_tua_nama    String
+  orang_tua_email   String
+  orang_tua_telepon String
+
+  kelas   Kelas  @relation(fields: [kelasId], references: [id])
+  kelasId String
+
+  nilai Nilai[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kelasId])
+  @@index([nisn])
+}
+
+model Guru {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+
+  nama           String
+  nip            String   @unique
+  gelar_depan    String?
+  gelar_belakang String?
+  mata_pelajaran String[]
+  alamat         String
+  no_telepon     String
+
+  kelas_wali   Kelas[]
+  jadwal       Jadwal[]
+  nilai_dibuat Nilai[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([nip])
+}
+
+model Kelas {
+  id           String @id @default(cuid())
+  nama         String // "10 IPA 1", "11 IPS 2", etc
+  tingkat      Int // 10, 11, 12
+  jurusan      String // "IPA", "IPS", "Bahasa"
+  tahun_ajaran String // "2024/2025"
+  semester     Int // 1 atau 2
+
+  guru_wali   Guru?   @relation(fields: [guru_waliId], references: [id])
+  guru_waliId String?
+
+  siswa  Siswa[]
+  jadwal Jadwal[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([nama, tahun_ajaran, semester])
+  @@index([guru_waliId])
+}
+
+model Jadwal {
+  id String @id @default(cuid())
+
+  hari        String // "Senin", "Selasa", etc
+  jam_mulai   String // "07:00"
+  jam_selesai String // "08:30"
+
+  mapel   String
+  ruangan String
+
+  kelas   Kelas  @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+  kelasId String
+
+  guru   Guru   @relation(fields: [guruId], references: [id])
+  guruId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kelasId])
+  @@index([guruId])
+  @@index([hari])
+}
+
+model Nilai {
+  id String @id @default(cuid())
+
+  siswa   Siswa  @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  siswaId String
+
+  mapel    String
+  semester Int
+
+  nilai_harian Float
+  nilai_uts    Float?
+  nilai_uas    Float?
+  nilai_akhir  Float?
+
+  keterangan String?
+
+  guru_pembuat Guru   @relation(fields: [guruId], references: [id])
+  guruId       String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([siswaId, mapel, semester])
+  @@index([siswaId])
+  @@index([guruId])
+}
+
+model Berita {
+  id     String @id @default(cuid())
+  judul  String
+  slug   String @unique
+  konten String @db.Text
+  gambar String
+
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Galeri {
+  id         String  @id @default(cuid())
+  judul      String
+  deskripsi  String?
+  gambar     String
+  tipe       String // "foto" | "video"
+  link_video String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Registrasi {
+  id String @id @default(cuid())
+
+  nama       String
+  email      String
+  no_telepon String
+  alamat     String
+
+  asal_sekolah    String
+  nilai_rata_rata Float
+
+  status           String // "pending" | "approved" | "rejected"
+  token_verifikasi String  @unique
+  isVerified       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+}
