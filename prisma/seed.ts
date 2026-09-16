@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -152,31 +153,34 @@ async function main() {
     }
   }
 
-  // --- Nilai (10 siswa x 3 mapel) ---
+  // --- Nilai (10 siswa x 3 mapel x 2 semester, so the trend chart has more than one point) ---
   const mapelList = ["Matematika", "Bahasa Indonesia", "Bahasa Inggris"];
   for (const siswa of siswaList) {
     for (let m = 0; m < mapelList.length; m++) {
       const guru = guruList[m % guruList.length];
-      await prisma.nilai.upsert({
-        where: {
-          siswaId_mapel_semester: {
+      for (const semester of [1, 2]) {
+        const trendBump = semester === 2 ? 3 : 0; // slight improvement in semester 2
+        await prisma.nilai.upsert({
+          where: {
+            siswaId_mapel_semester: {
+              siswaId: siswa.id,
+              mapel: mapelList[m],
+              semester,
+            },
+          },
+          update: {},
+          create: {
             siswaId: siswa.id,
             mapel: mapelList[m],
-            semester: 1,
+            semester,
+            nilai_harian: 75 + ((m * 3) % 20) + trendBump,
+            nilai_uts: 78 + ((m * 5) % 15) + trendBump,
+            nilai_uas: 80 + ((m * 2) % 15) + trendBump,
+            nilai_akhir: 80 + trendBump,
+            guruId: guru.id,
           },
-        },
-        update: {},
-        create: {
-          siswaId: siswa.id,
-          mapel: mapelList[m],
-          semester: 1,
-          nilai_harian: 75 + ((m * 3) % 20),
-          nilai_uts: 78 + ((m * 5) % 15),
-          nilai_uas: 80 + ((m * 2) % 15),
-          nilai_akhir: 80,
-          guruId: guru.id,
-        },
-      });
+        });
+      }
     }
   }
 
@@ -226,6 +230,74 @@ async function main() {
         },
       });
     }
+  }
+
+  // --- Galeri video (1, so the foto/video filter has something to demo) ---
+  const videoExisting = await prisma.galeri.findFirst({ where: { judul: "Profil Sekolah SMU" } });
+  if (!videoExisting) {
+    await prisma.galeri.create({
+      data: {
+        judul: "Profil Sekolah SMU",
+        deskripsi: "Video profil singkat mengenai lingkungan dan kegiatan SMU.",
+        gambar: "/images/placeholder-galeri-1.jpg",
+        tipe: "video",
+        link_video: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      },
+    });
+  }
+
+  // --- Registrasi (demo entries covering all statuses, so /admin/registrasi has something to review) ---
+  const registrasiData = [
+    {
+      nama: "Rahmat Hidayat",
+      email: "rahmat.hidayat.calon@example.com",
+      status: "pending",
+      isVerified: true,
+      jurusan: "IPA",
+    },
+    {
+      nama: "Dewi Lestari",
+      email: "dewi.lestari.calon@example.com",
+      status: "pending",
+      isVerified: false,
+      jurusan: "IPS",
+    },
+    {
+      nama: "Fajar Nugroho",
+      email: "fajar.nugroho.calon@example.com",
+      status: "approved",
+      isVerified: true,
+      jurusan: "IPA",
+    },
+    {
+      nama: "Putri Ramadhani",
+      email: "putri.ramadhani.calon@example.com",
+      status: "rejected",
+      isVerified: true,
+      jurusan: "Bahasa",
+    },
+  ];
+
+  for (const r of registrasiData) {
+    const existing = await prisma.registrasi.findFirst({ where: { email: r.email } });
+    if (existing) continue;
+    await prisma.registrasi.create({
+      data: {
+        nama: r.nama,
+        email: r.email,
+        no_telepon: "0812" + String(Math.floor(10000000 + Math.random() * 89999999)),
+        alamat: `Jl. Calon Siswa No. ${Math.floor(Math.random() * 50) + 1}`,
+        asal_sekolah: "SMP Negeri Contoh",
+        nilai_rata_rata: 80 + Math.floor(Math.random() * 15),
+        tahun_lulus: 2026,
+        jurusan_diminati: r.jurusan,
+        catatan: "Data pendaftaran contoh (dummy) untuk keperluan demo.",
+        status: r.status,
+        isVerified: r.isVerified,
+        token_verifikasi: randomUUID(),
+        tokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
   }
 
   console.log("Seed selesai.");
