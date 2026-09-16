@@ -45,6 +45,23 @@ All `/api/admin/*` routes are protected server-side via `requireAdmin()` (403 fo
 - Jadwal is an agenda-per-day view, not a literal time-grid calendar component — avoids a heavy calendar library while still supporting click-to-create/edit and overlap validation.
 - Nilai's "guru pencatat" (recording teacher) is inferred by matching mata pelajaran to a guru who teaches it, since the CRUD form doesn't expose that field explicitly.
 
+## Phase 3 status
+
+Role-specific dashboards, email notifications, public content pages, and student registration — built using the `nextjs-developer` skill's App Router/RSC guidance (server-fetch-first, `generateMetadata` for SEO, ISR via `export const revalidate`, `loading.tsx` boundaries).
+
+- **Siswa dashboard** (`/dashboard/siswa`): tabbed Jadwal/Nilai view — jadwal is a color-coded weekly agenda with a "next class today" highlight; nilai shows a semester filter, class average, a Recharts line chart of nilai_akhir trend across semesters, and a print/PDF button (`window.print()`). Latest 3 published berita shown as announcements.
+- **Guru dashboard** (`/dashboard/guru`): jadwal tab (their own teaching schedule), nilai tab where they pick kelas + mapel + semester and edit/upsert grades inline or via scoped Excel bulk-import/export, and a kelas tab listing their classes with an expandable student roster. Every nilai/kelas endpoint double-checks server-side that the guru actually teaches that kelas (via their `Jadwal` entries) and that mapel is in their `mata_pelajaran` — a guru cannot read or write grades for a class/subject they don't teach (verified: cross-kelas and cross-mapel requests return 403).
+- **Orang tua dashboard** (`/dashboard/orang-tua`): a child selector (for parents with multiple children) driving the same read-only Jadwal/Nilai tabs. Per-child API routes (`/api/dashboard/orang-tua/anak/[siswaId]/...`) verify `siswa.orang_tua_email === session.user.email` before returning anything — verified: requesting another parent's child returns 403 (IDOR blocked).
+- **Email notifications** (`src/lib/email.ts` + `src/lib/emails/templates.ts`): branded HTML templates for registration confirmation, siswa/guru welcome (with temp password), and nilai-updated notices (sent to both siswa and orang tua). Uses `@sendgrid/mail`; if `SENDGRID_API_KEY` is unset it logs to the console instead of failing, the same graceful-degradation pattern as the optional Redis cache — so the app works out of the box without a real email provider. Wired into siswa/guru creation and guru nilai edits.
+- **Public berita** (`/berita`, `/berita/[slug]`): paginated/searchable list, ISR (`revalidate = 3600`), full SEO metadata via `generateMetadata` (OG image, description), reading-time estimate, share links (WhatsApp/Facebook/X), related posts. Homepage now shows the 3 latest posts.
+- **Public galeri** (`/galeri`): foto/video filter, lazy-loaded grid, a Radix-Dialog-based lightbox with prev/next navigation — no extra lightbox library needed.
+- **Registrasi** (`/registrasi`): public application form (react-hook-form + zod) → creates a `Registrasi` record, emails a 24-hour verification link, rate-limited to 5 submissions/IP/day. `/registrasi/verify` marks the record verified. Admin reviews pending applications at `/admin/registrasi` and can approve (requires verified email) or reject.
+
+**Known trade-offs**:
+- Approving a registrasi only flips its status to `approved` — it does **not** auto-create a Siswa/User account, because the form doesn't collect required fields (NISN, NIK, tanggal lahir, kelas assignment). An admin still finishes onboarding via the existing "Tambah Siswa" flow in `/admin/siswa`.
+- "Download as PDF" for jadwal/nilai uses the browser's native print dialog (`window.print()` with print-friendly CSS) rather than a PDF-generation library — the browser's own "Save as PDF" destination covers this without adding a dependency.
+- The Bull/Redis job queue mentioned in the original spec for email retries was skipped as disproportionate to this project's scale; emails send inline (fire-and-forget, failures are logged but never block the triggering request).
+
 ## Requirements
 
 - Node.js 20+
@@ -70,6 +87,11 @@ DATABASE_URL="postgresql://user:password@localhost:5432/smu_website"
 NEXTAUTH_SECRET="use `openssl rand -base64 32` in production"
 NEXTAUTH_URL="http://localhost:3000"
 REDIS_URL="redis://localhost:6379"   # optional
+
+# Optional — email sending logs to the console instead of failing if unset
+SENDGRID_API_KEY=""
+EMAIL_FROM="noreply@smu.join.co.id"
+EMAIL_REPLY_TO="admin@smu.join.co.id"
 ```
 
 ## Test credentials (after seeding)

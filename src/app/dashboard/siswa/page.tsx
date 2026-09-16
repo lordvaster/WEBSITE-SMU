@@ -1,68 +1,60 @@
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getSiswaByUserId, getSiswaJadwal, getSiswaNilai } from "@/lib/queries/siswa";
+import { Tabs } from "@/components/dashboard/Tabs";
+import { JadwalWeekView } from "@/components/dashboard/JadwalWeekView";
+import { NilaiSummary } from "@/components/dashboard/NilaiSummary";
+import { AnnouncementList } from "@/components/dashboard/AnnouncementList";
 
 export default async function SiswaDashboardPage() {
   const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
 
-  const siswa = await db.siswa.findUnique({
-    where: { userId: session?.user.id },
-    include: {
-      kelas: { include: { jadwal: { include: { guru: true } } } },
-      nilai: true,
-    },
-  });
+  const siswa = await getSiswaByUserId(session.user.id);
+  if (!siswa) {
+    return <p className="text-sm text-slate-400">Data siswa tidak ditemukan.</p>;
+  }
+
+  const [jadwal, nilai] = await Promise.all([
+    getSiswaJadwal(siswa.kelasId),
+    getSiswaNilai(siswa.id),
+  ]);
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">
-        Selamat datang, {siswa?.nama ?? "Siswa"}!
-      </h1>
-      <p className="mt-1 text-sm text-slate-500">Kelas {siswa?.kelas.nama ?? "-"}</p>
-
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-sm font-semibold text-slate-700">Jadwal Pelajaran</h2>
-          <div className="mt-3 space-y-2">
-            {siswa?.kelas.jadwal.length ? (
-              siswa.kelas.jadwal.map((j) => (
-                <div key={j.id} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <span>
-                    {j.hari}, {j.jam_mulai}–{j.jam_selesai} · {j.mapel}
-                  </span>
-                  <span className="text-slate-500">{j.guru.nama}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-400">Belum ada jadwal.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-sm font-semibold text-slate-700">Nilai Saya</h2>
-          <div className="mt-3 space-y-2">
-            {siswa?.nilai.length ? (
-              siswa.nilai.map((n) => (
-                <div key={n.id} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <span>
-                    {n.mapel} (Semester {n.semester})
-                  </span>
-                  <span className="font-medium text-slate-700">
-                    {n.nilai_akhir ?? n.nilai_harian}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-400">Belum ada nilai.</p>
-            )}
-          </div>
-        </div>
+      <h1 className="text-2xl font-semibold text-slate-900">Selamat datang, {siswa.nama}!</h1>
+      <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-500">
+        <span>
+          Kelas: <span className="font-medium text-slate-700">{siswa.kelas.nama}</span>
+        </span>
+        <span>
+          NISN: <span className="font-medium text-slate-700">{siswa.nisn}</span>
+        </span>
+        <span>
+          Email: <span className="font-medium text-slate-700">{siswa.user.email}</span>
+        </span>
       </div>
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="text-sm font-semibold text-slate-700">Pengumuman</h2>
-        <p className="mt-2 text-sm text-slate-400">Belum ada pengumuman terbaru.</p>
+      <div className="mt-6">
+        <Tabs
+          tabs={[
+            {
+              key: "jadwal",
+              label: "Jadwal Pelajaran",
+              content: <JadwalWeekView data={jadwal} secondaryLabel="guru" />,
+            },
+            {
+              key: "nilai",
+              label: "Nilai",
+              content: <NilaiSummary data={nilai} />,
+            },
+          ]}
+        />
+      </div>
+
+      <div className="mt-6">
+        <AnnouncementList />
       </div>
     </div>
   );

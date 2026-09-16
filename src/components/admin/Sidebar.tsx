@@ -11,6 +11,7 @@ import {
   Images,
   Settings,
   LayoutDashboard,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const navItems = [
   { label: "Guru", href: "/admin/guru", icon: Users },
   { label: "Jadwal", href: "/admin/jadwal", icon: CalendarDays },
   { label: "Nilai", href: "/admin/nilai", icon: ClipboardList },
+  { label: "Registrasi", href: "/admin/registrasi", icon: UserPlus },
   { label: "Berita", href: "/admin/berita", icon: Newspaper },
   { label: "Galeri", href: "/admin/galeri", icon: Images },
   { label: "Settings", href: "/admin/settings", icon: Settings },

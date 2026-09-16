@@ -184,10 +184,14 @@ model Registrasi {
 
   asal_sekolah    String
   nilai_rata_rata Float
+  tahun_lulus     Int
+  jurusan_diminati String // "IPA" | "IPS" | "Bahasa"
+  catatan         String?
 
   status           String // "pending" | "approved" | "rejected"
-  token_verifikasi String  @unique
-  isVerified       Boolean @default(false)
+  token_verifikasi String    @unique
+  isVerified       Boolean   @default(false)
+  tokenExpiresAt   DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

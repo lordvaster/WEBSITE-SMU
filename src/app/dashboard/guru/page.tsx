@@ -1,68 +1,71 @@
 import { getServerSession } from "next-auth";
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getGuruByUserId, getGuruJadwal, getGuruKelas, getSiswaCountByKelas } from "@/lib/queries/guru";
+import { Tabs } from "@/components/dashboard/Tabs";
+import { JadwalWeekView } from "@/components/dashboard/JadwalWeekView";
+import { GuruNilaiEditor } from "@/components/dashboard/GuruNilaiEditor";
+import { GuruKelasTab } from "@/components/dashboard/GuruKelasTab";
 
 export default async function GuruDashboardPage() {
   const session = await getServerSession(authOptions);
+  if (!session) redirect("/login");
 
-  const guru = await db.guru.findUnique({
-    where: { userId: session?.user.id },
-    include: {
-      jadwal: { include: { kelas: true }, orderBy: { hari: "asc" } },
-      kelas_wali: true,
-    },
-  });
+  const guru = await getGuruByUserId(session.user.id);
+  if (!guru) {
+    return <p className="text-sm text-slate-400">Data guru tidak ditemukan.</p>;
+  }
+
+  const [jadwal, kelas] = await Promise.all([getGuruJadwal(guru.id), getGuruKelas(guru.id)]);
+  const siswaCounts = await getSiswaCountByKelas(kelas.map((k) => k.id));
+  const jumlahSiswa = Array.from(siswaCounts.values()).reduce((a, b) => a + b, 0);
+  const kelasWithCount = kelas.map((k) => ({ ...k, jumlahSiswa: siswaCounts.get(k.id) ?? 0 }));
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">
-        Selamat datang, {guru?.nama ?? "Guru"}!
-      </h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Mengajar {guru?.mata_pelajaran.join(", ") || "-"}
-      </p>
+      <h1 className="text-2xl font-semibold text-slate-900">Selamat datang, {guru.nama}!</h1>
+      <p className="mt-1 text-sm text-slate-500">Mengajar {guru.mata_pelajaran.join(", ") || "-"}</p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <p className="text-sm text-slate-500">Kelas Diajar</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">
-            {new Set(guru?.jadwal.map((j) => j.kelasId)).size ?? 0}
-          </p>
+          <p className="mt-1 text-2xl font-semibold text-slate-900">{kelas.length}</p>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Jadwal Minggu Ini</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">
-            {guru?.jadwal.length ?? 0}
-          </p>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Total Siswa</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-900">{jumlahSiswa}</p>
         </div>
-      </div>
-
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="text-sm font-semibold text-slate-700">Jadwal Mengajar</h2>
-        <div className="mt-3 space-y-2">
-          {guru?.jadwal.length ? (
-            guru.jadwal.map((j) => (
-              <div key={j.id} className="flex justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                <span>
-                  {j.hari}, {j.jam_mulai}–{j.jam_selesai} · {j.mapel}
-                </span>
-                <span className="text-slate-500">{j.kelas.nama}</span>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-slate-400">Belum ada jadwal.</p>
-          )}
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm text-slate-500">Jadwal Mengajar</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-900">{jadwal.length}</p>
         </div>
       </div>
 
       <div className="mt-6">
-        <Link
-          href="/dashboard/guru/nilai"
-          className="inline-block rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
-        >
-          Input Nilai Siswa
-        </Link>
+        <Tabs
+          tabs={[
+            {
+              key: "jadwal",
+              label: "Jadwal Mengajar",
+              content: <JadwalWeekView data={jadwal} secondaryLabel="kelas" />,
+            },
+            {
+              key: "nilai",
+              label: "Input Nilai",
+              content: (
+                <GuruNilaiEditor
+                  kelasOptions={kelas.map((k) => ({ id: k.id, nama: k.nama }))}
+                  mapelOptions={guru.mata_pelajaran}
+                />
+              ),
+            },
+            {
+              key: "kelas",
+              label: "Kelas Saya",
+              content: <GuruKelasTab kelas={kelasWithCount} />,
+            },
+          ]}
+        />
       </div>
     </div>
   );

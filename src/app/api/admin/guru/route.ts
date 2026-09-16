@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { requireAdmin, ok, fail, handleApiError } from "@/lib/api-helpers";
 import { guruCreateSchema } from "@/lib/validations/guru";
+import { sendWelcomeGuru } from "@/lib/email";
 
 export async function GET() {
   try {
@@ -55,6 +56,12 @@ export async function POST(request: Request) {
       },
       include: { user: { select: { email: true, isActive: true } } },
     });
+
+    sendWelcomeGuru({
+      email: guru.user.email,
+      nama: guru.nama,
+      tempPassword: data.password,
+    }).catch((err) => console.error("[email] welcome guru failed:", err));
 
     return ok(guru, "Guru berhasil ditambahkan", 201);
   } catch (e) {

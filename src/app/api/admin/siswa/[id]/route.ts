@@ -54,7 +54,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         alamat: data.alamat,
         no_telepon: data.no_telepon,
         orang_tua_nama: data.orang_tua_nama,
-        orang_tua_email: data.orang_tua_email,
+        orang_tua_email: data.orang_tua_email.toLowerCase(),
         orang_tua_telepon: data.orang_tua_telepon,
         kelas: { connect: { id: data.kelasId } },
         user: { update: userUpdate },

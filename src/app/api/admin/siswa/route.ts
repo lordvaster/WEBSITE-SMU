@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { requireAdmin, ok, fail, handleApiError } from "@/lib/api-helpers";
 import { siswaCreateSchema } from "@/lib/validations/siswa";
+import { sendWelcomeSiswa } from "@/lib/email";
 
 export async function GET() {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
         alamat: data.alamat,
         no_telepon: data.no_telepon,
         orang_tua_nama: data.orang_tua_nama,
-        orang_tua_email: data.orang_tua_email,
+        orang_tua_email: data.orang_tua_email.toLowerCase(),
         orang_tua_telepon: data.orang_tua_telepon,
         kelas: { connect: { id: data.kelasId } },
         user: {
@@ -62,6 +63,14 @@ export async function POST(request: Request) {
       },
       include: { kelas: true, user: { select: { email: true, isActive: true } } },
     });
+
+    // Fire-and-forget: email delivery shouldn't block or fail the account creation.
+    sendWelcomeSiswa({
+      email: siswa.user.email,
+      nama: siswa.nama,
+      tempPassword: data.password,
+      orangTuaEmail: siswa.orang_tua_email,
+    }).catch((err) => console.error("[email] welcome siswa failed:", err));
 
     return ok(siswa, "Siswa berhasil ditambahkan", 201);
   } catch (e) {

@@ -11,24 +11,28 @@ export class ApiError extends Error {
   }
 }
 
-export async function requireAdmin() {
+export async function requireRole(role: string) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || session.user.role !== role) {
     throw new ApiError("Forbidden", 403);
   }
 
   // The JWT's role claim is only set at sign-in and lives for the token's lifetime, so a
-  // deactivated or demoted admin would otherwise keep API access until the token expires.
+  // deactivated or demoted user would otherwise keep API access until the token expires.
   // Re-check the live record so revocation takes effect immediately.
   const currentUser = await db.user.findUnique({
     where: { id: session.user.id },
     select: { role: true, isActive: true },
   });
-  if (!currentUser || !currentUser.isActive || currentUser.role !== "admin") {
+  if (!currentUser || !currentUser.isActive || currentUser.role !== role) {
     throw new ApiError("Forbidden", 403);
   }
 
   return session;
+}
+
+export function requireAdmin() {
+  return requireRole("admin");
 }
 
 export function ok(data: unknown, message?: string, status = 200) {

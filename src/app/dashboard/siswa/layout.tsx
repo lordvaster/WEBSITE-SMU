@@ -3,11 +3,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { DashboardShell } from "@/components/layouts/DashboardShell";
 
-const navItems = [
-  { label: "Ringkasan", href: "/dashboard/siswa" },
-  { label: "Jadwal Saya", href: "/dashboard/siswa/jadwal" },
-  { label: "Nilai Saya", href: "/dashboard/siswa/nilai" },
-];
+const navItems = [{ label: "Dashboard", href: "/dashboard/siswa" }];
 
 export default async function SiswaLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);

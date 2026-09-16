@@ -18,6 +18,16 @@ export function generatePassword(length = 10): string {
   return result;
 }
 
+export function htmlExcerpt(html: string, maxLength = 140): string {
+  const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+}
+
+export function estimateReadingMinutes(html: string): number {
+  const words = html.replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
 export function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;

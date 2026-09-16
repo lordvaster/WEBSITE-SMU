@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { PublicNavbar } from "@/components/layouts/PublicNavbar";
+import { BeritaCard } from "@/components/public/BeritaCard";
+import { db } from "@/lib/db";
+import { htmlExcerpt } from "@/lib/text";
+
+export const revalidate = 3600;
 
 const features = [
   {
@@ -16,7 +21,13 @@ const features = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const beritaTerbaru = await db.berita.findMany({
+    where: { isPublished: true },
+    orderBy: { publishedAt: "desc" },
+    take: 3,
+  });
+
   return (
     <div className="min-h-screen bg-white">
       <PublicNavbar />
@@ -58,6 +69,22 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {beritaTerbaru.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 py-16">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-slate-900">Berita Terbaru</h2>
+            <Link href="/berita" className="text-sm font-medium text-blue-500 hover:underline">
+              Lihat semua →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {beritaTerbaru.map((b) => (
+              <BeritaCard key={b.id} berita={{ ...b, excerpt: htmlExcerpt(b.konten) }} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <footer className="border-t border-slate-200 py-8 text-center text-sm text-slate-400">
         © {new Date().getFullYear()} SMU. Seluruh hak cipta dilindungi.
