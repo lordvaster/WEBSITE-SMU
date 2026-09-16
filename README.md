@@ -62,6 +62,17 @@ Role-specific dashboards, email notifications, public content pages, and student
 - "Download as PDF" for jadwal/nilai uses the browser's native print dialog (`window.print()` with print-friendly CSS) rather than a PDF-generation library — the browser's own "Save as PDF" destination covers this without adding a dependency.
 - The Bull/Redis job queue mentioned in the original spec for email retries was skipped as disproportionate to this project's scale; emails send inline (fire-and-forget, failures are logged but never block the triggering request).
 
+## Phase 4 status — performance & production deployment (2026-09-16)
+
+- **Database indexes**: added `Siswa.orang_tua_email` (hot lookup path for the orang tua dashboard) and `Berita(isPublished, publishedAt)` (the public berita listing's filter+sort) — migration `20260916065454_add_perf_indexes`.
+- **Performance audit**: confirmed all images already go through `next/image` (no raw `<img>` for content), public pages already use ISR (`export const revalidate = 3600`), and listing pages paginate server-side. `npm run build` produces a clean production bundle with static/ISR pages for `/`, `/galeri` and per-request caching for `/berita`, `/berita/[slug]` (dynamic because of search/pagination query params, which is expected).
+- **Production deployment**: the app now runs as a systemd service (`/etc/systemd/system/smu-website.service`, `npm start` on port 3000, `Restart=on-failure`, enabled at boot) behind an Nginx reverse proxy (`/etc/nginx/sites-available/smu.join.co.id`) at **https://smu.join.co.id**, with a Let's Encrypt certificate (auto-renewed via the `certbot.timer` systemd timer) and HTTP→HTTPS redirect. `NEXTAUTH_URL` and `NEXTAUTH_SECRET` were updated to production values (a real random secret, not the dev placeholder).
+
+**Known trade-offs**:
+- The systemd service runs as `root` (matching how this VPS is already administered — Postgres/Nginx are also root-managed here) rather than a dedicated least-privilege system user; a dedicated user was skipped because `/root` itself isn't traversable by other users, and restructuring the deploy path was out of scope for this pass.
+- `DATABASE_URL` still uses the original local dev credentials (`postgres:postgres`) — rotating the Postgres password wasn't done in this pass since the DB is only reachable from `localhost` and changing it risks breaking other local tooling; consider rotating before handling real student PII at scale.
+- The Let's Encrypt account was registered with `--register-unsafely-without-email` (skipped, per instruction) — there's no automatic email warning before the cert expires, though the systemd renewal timer handles renewal automatically well before the 90-day expiry.
+
 ## Requirements
 
 - Node.js 20+

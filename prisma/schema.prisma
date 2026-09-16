@@ -51,6 +51,7 @@ model Siswa {
 
   @@index([kelasId])
   @@index([nisn])
+  @@index([orang_tua_email])
 }
 
 model Guru {
@@ -160,6 +161,8 @@ model Berita {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([isPublished, publishedAt])
 }
 
 model Galeri {
