@@ -3,14 +3,13 @@ import { db } from "@/lib/db";
 import { ok, fail, handleApiError } from "@/lib/api-helpers";
 import { registrasiSchema } from "@/lib/validations/registrasi";
 import { sendRegistrationConfirmation } from "@/lib/email";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function POST(request: Request) {
   try {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const ip = getClientIp((name) => request.headers.get(name));
     // Cap public form submissions per IP to keep the registration form from being spammed.
     if (!checkRateLimit(`registrasi:ip:${ip}`, 5, 24 * 60 * 60 * 1000)) {
       return fail("Batas pengajuan tercapai. Silakan coba lagi besok.", 429);

@@ -2,7 +2,7 @@ import type { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { comparePassword } from "@/lib/password";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 // A precomputed bcrypt hash with no matching plaintext, compared against when the
 // looked-up user doesn't exist. This keeps authorize()'s response time the same
@@ -35,9 +35,7 @@ export const authOptions: AuthOptions = {
         }
 
         const email = credentials.email.toLowerCase();
-        const ip =
-          (req?.headers?.["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ??
-          "unknown";
+        const ip = getClientIp((name) => req?.headers?.[name] as string | undefined);
 
         // Cap attempts per email and per IP so credential stuffing / brute force can't
         // run unbounded against a single account or from a single source.

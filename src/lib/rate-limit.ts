@@ -1,5 +1,27 @@
 type Bucket = { count: number; resetAt: number };
 
+/**
+ * Resolve the real client IP for rate-limiting keys. Nginx is configured with
+ * `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for`, which APPENDS the real
+ * client IP after any value the client already sent — so the leftmost X-Forwarded-For
+ * entry is attacker-controlled and must never be trusted. `X-Real-IP` is set by Nginx to
+ * `$remote_addr` (the actual TCP peer), which a client cannot override, so prefer it.
+ * This is only trustworthy because the app itself is bound to 127.0.0.1 and unreachable
+ * except through that Nginx hop — see systemd unit HOSTNAME=127.0.0.1.
+ */
+export function getClientIp(getHeader: (name: string) => string | null | undefined): string {
+  const realIp = getHeader("x-real-ip")?.trim();
+  if (realIp) return realIp;
+
+  const forwardedFor = getHeader("x-forwarded-for");
+  if (forwardedFor) {
+    const parts = forwardedFor.split(",").map((p) => p.trim());
+    return parts[parts.length - 1] || "unknown";
+  }
+
+  return "unknown";
+}
+
 const buckets = new Map<string, Bucket>();
 
 /**
